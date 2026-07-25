@@ -29,7 +29,7 @@ jobs:
           if ($errors) { $errors; exit 1 }
       - name: actionlint
         run: |
-          go install github.com/rhysd/actionlint/cmd/actionlint@v1.7.7
+          go install github.com/rhysd/actionlint/cmd/actionlint@v1.7.12
           "$(go env GOPATH)/bin/actionlint"
 
   test-pass:
