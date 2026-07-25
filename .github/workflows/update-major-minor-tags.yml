@@ -1,0 +1,38 @@
+name: Update Major Minor Tags
+
+on:
+  push:
+    branches-ignore:
+      - "**"
+    tags:
+      - "v*.*.*"
+
+jobs:
+  update-major-minor-tags:
+    name: Update major/minor tags
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: true
+
+      - name: Move major/minor tags
+        shell: bash
+        run: |
+          set -eux
+          TAG="${GITHUB_REF#refs/tags/}"
+          MINOR="${TAG%.*}"
+          MAJOR="${MINOR%.*}"
+
+          MESSAGE="Release ${TAG}"
+
+          git config user.name "${GITHUB_ACTOR}"
+          git config user.email "${GITHUB_ACTOR}@users.noreply.github.com"
+
+          git tag -fa "${MINOR}" -m "${MESSAGE}"
+          git tag -fa "${MAJOR}" -m "${MESSAGE}"
+
+          git push --force origin "${MINOR}"
+          git push --force origin "${MAJOR}"

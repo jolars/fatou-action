@@ -1,0 +1,119 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - name: Shell syntax check
+        run: sh -n scripts/install-fatou.sh
+      - name: ShellCheck
+        run: shellcheck scripts/install-fatou.sh
+      - name: PowerShell parse check
+        shell: pwsh
+        run: |
+          $errors = $null
+          [void][System.Management.Automation.Language.Parser]::ParseFile(
+            (Resolve-Path scripts/install-fatou.ps1), [ref]$null, [ref]$errors)
+          if ($errors) { $errors; exit 1 }
+      - name: actionlint
+        run: |
+          go install github.com/rhysd/actionlint/cmd/actionlint@v1.7.7
+          "$(go env GOPATH)/bin/actionlint"
+
+  test-pass:
+    name: Pass (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - ubuntu-latest
+          - ubuntu-24.04-arm
+          - macos-latest
+          - macos-15-intel
+          - windows-latest
+          - windows-11-arm
+    steps:
+      - uses: actions/checkout@v7
+      - name: Run action (should pass)
+        uses: ./
+        with:
+          path: fixtures/ok.jl
+
+  test-fail:
+    name: Fail (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os:
+          - ubuntu-latest
+          - ubuntu-24.04-arm
+          - macos-latest
+          - macos-15-intel
+          - windows-latest
+          - windows-11-arm
+    steps:
+      - uses: actions/checkout@v7
+      - name: Run action (should fail)
+        id: expected-failure
+        continue-on-error: true
+        uses: ./
+        with:
+          path: fixtures/bad.jl
+      - name: Verify action failed
+        shell: pwsh
+        run: |
+          if ("${{ steps.expected-failure.outcome }}" -eq "success") {
+            Write-Host "Action unexpectedly passed"
+            exit 1
+          }
+
+  all-tests-passed:
+    name: All tests passed
+    runs-on: ubuntu-latest
+    needs:
+      - lint
+      - test-pass
+      - test-fail
+    if: always()
+    steps:
+      - name: Check previous jobs
+        shell: pwsh
+        run: |
+          if ("${{ contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled') }}" -eq "true") {
+            Write-Host "One or more jobs failed"
+            exit 1
+          }
+
+  versionary:
+    name: Versionary
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: all-tests-passed
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+      issues: write
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+          fetch-tags: true
+          token: ${{ secrets.RELEASE_TOKEN }}
+
+      - uses: jolars/versionary@v0
+        with:
+          github-token: ${{ secrets.RELEASE_TOKEN }}
