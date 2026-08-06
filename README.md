@@ -77,6 +77,7 @@ jobs:
   | `path`            | File or directory to check                      | `.`      |
   | `version`         | fatou version to install (`latest` or `vX.Y.Z`) | `latest` |
   | `format`          | Run `fatou format --check`                      | `true`   |
+  | `quiet`           | Suppress the `format --check` diff (list only)  | `false`  |
   | `lint`            | Run `fatou lint`                                | `true`   |
   | `config`          | Optional path to a `fatou.toml` config file     | `""`     |
   | `verify-checksum` | Verify the downloaded asset against its SHA256  | `true`   |
