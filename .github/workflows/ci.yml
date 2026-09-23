@@ -114,6 +114,6 @@ jobs:
           fetch-tags: true
           token: ${{ secrets.RELEASE_TOKEN || github.token }}
 
-      - uses: jolars/versionary@v0
+      - uses: jolars/versionary@v1
         with:
           token: ${{ secrets.RELEASE_TOKEN }}
