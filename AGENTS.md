@@ -14,6 +14,7 @@ Guidance for agentic coding assistants in `fatou-action`.
 - `action.yml`: action API (inputs/outputs) and execution steps.
 - `scripts/install-fatou.sh`: Unix installer (verifies checksum + provenance).
 - `scripts/install-fatou.ps1`: Windows installer (verifies checksum + provenance).
+- `tests/install-fatou.sh`, `tests/install-fatou.ps1`: offline installer regression tests.
 - `.github/workflows/ci.yml`: lint, integration tests, and the versionary release job.
 - `.github/workflows/update-major-minor-tags.yml`: release tag maintenance.
 - `fixtures/ok.jl`, `fixtures/bad.jl`: expected pass/fail fixtures.
@@ -32,14 +33,20 @@ Run from repo root.
 
 The `lint` job in `ci.yml` runs all of these; run them locally before pushing.
 
-- Shell syntax: `sh -n scripts/install-fatou.sh`
-- ShellCheck: `shellcheck scripts/install-fatou.sh`
+- Shell syntax: `sh -n scripts/install-fatou.sh` and `sh -n tests/install-fatou.sh`
+- ShellCheck: `shellcheck scripts/install-fatou.sh tests/install-fatou.sh`
 - PowerShell parse check:
   `pwsh -NoLogo -NoProfile -Command "[void][ScriptBlock]::Create((Get-Content -Raw 'scripts/install-fatou.ps1'))"`
+  (also run for `tests/install-fatou.ps1`).
 - Workflow lint: `actionlint`
 
 ## Test
 
+- Offline installer regression tests:
+  - Unix: `sh tests/install-fatou.sh`
+  - Windows: `pwsh -NoLogo -NoProfile -File tests/install-fatou.ps1`
+  - Both suites simulate interrupted downloads, exhausted retries, and verification
+    failures. CI runs them on the corresponding operating systems in `test-pass`.
 - Main workflow: `.github/workflows/ci.yml`.
   - `test-pass` should succeed with `fixtures/ok.jl`.
   - `test-fail` should fail with `fixtures/bad.jl` (failure is asserted).

@@ -6,6 +6,23 @@ INSTALL_DIR="${FATOU_INSTALL_DIR:-$HOME/.local/bin}"
 VERSION="${FATOU_VERSION:-latest}"
 VERIFY="${FATOU_VERIFY_CHECKSUM:-true}"
 
+download() {
+	attempt=1
+	while :; do
+		if curl --proto '=https' --tlsv1.2 -fLsS "$1" -o "$2"; then
+			return 0
+		else
+			status=$?
+		fi
+		if [ "$attempt" -ge 4 ]; then
+			return "$status"
+		fi
+		echo "Warning: download failed; retrying in 1 second (${attempt}/3)." >&2
+		sleep 1
+		attempt=$((attempt + 1))
+	done
+}
+
 os="$(uname -s)"
 arch="$(uname -m)"
 
@@ -53,12 +70,12 @@ tmpdir="$(mktemp -d)"
 trap 'rm -rf "$tmpdir"' EXIT INT TERM
 
 echo "Downloading ${asset} (${VERSION})..."
-curl --proto '=https' --tlsv1.2 -fLsS "$url" -o "$tmpdir/$asset"
+download "$url" "$tmpdir/$asset"
 
 if [ "$VERIFY" = "true" ]; then
 	# Fetch the published checksum sidecar. Older releases may not have one, in
 	# which case we warn and continue rather than fail.
-	if curl --proto '=https' --tlsv1.2 -fLsS "${url}.sha256" -o "$tmpdir/$asset.sha256"; then
+	if download "${url}.sha256" "$tmpdir/$asset.sha256"; then
 		expected="$(awk '{print $1}' "$tmpdir/$asset.sha256")"
 		if command -v sha256sum >/dev/null 2>&1; then
 			actual="$(sha256sum "$tmpdir/$asset" | awk '{print $1}')"

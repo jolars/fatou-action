@@ -10,6 +10,9 @@ for Linux, macOS, and Windows on both x64 and ARM64. Downloaded binaries are
 verified against their published SHA256 checksum and build provenance
 attestation, and cached between runs.
 
+Failed archive and checksum downloads are retried up to three times, with a
+one-second delay between attempts.
+
 ## Usage
 
 ### Basic

@@ -17,16 +17,20 @@ jobs:
     steps:
       - uses: actions/checkout@v7
       - name: Shell syntax check
-        run: sh -n scripts/install-fatou.sh
+        run: |
+          sh -n scripts/install-fatou.sh
+          sh -n tests/install-fatou.sh
       - name: ShellCheck
-        run: shellcheck scripts/install-fatou.sh
+        run: shellcheck scripts/install-fatou.sh tests/install-fatou.sh
       - name: PowerShell parse check
         shell: pwsh
         run: |
-          $errors = $null
-          [void][System.Management.Automation.Language.Parser]::ParseFile(
-            (Resolve-Path scripts/install-fatou.ps1), [ref]$null, [ref]$errors)
-          if ($errors) { $errors; exit 1 }
+          foreach ($file in @('scripts/install-fatou.ps1', 'tests/install-fatou.ps1')) {
+            $errors = $null
+            [void][System.Management.Automation.Language.Parser]::ParseFile(
+              (Resolve-Path $file), [ref]$null, [ref]$errors)
+            if ($errors) { $errors; exit 1 }
+          }
       - name: actionlint
         run: |
           go install github.com/rhysd/actionlint/cmd/actionlint@v1.7.12
@@ -47,6 +51,14 @@ jobs:
           - windows-11-arm
     steps:
       - uses: actions/checkout@v7
+      - name: Test Unix installer
+        if: runner.os != 'Windows'
+        shell: sh
+        run: sh tests/install-fatou.sh
+      - name: Test Windows installer
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: ./tests/install-fatou.ps1
       - name: Run action (should pass)
         uses: ./
         with:

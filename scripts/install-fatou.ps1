@@ -7,6 +7,21 @@ $version = if ($env:FATOU_VERSION) { $env:FATOU_VERSION } else { 'latest' }
 $installDir = if ($env:FATOU_INSTALL_DIR) { $env:FATOU_INSTALL_DIR } else { Join-Path $env:LOCALAPPDATA 'Programs\fatou\bin' }
 $verify = if ($env:FATOU_VERIFY_CHECKSUM) { $env:FATOU_VERIFY_CHECKSUM } else { 'true' }
 
+function Invoke-FatouDownload {
+    param([string]$uri, [string]$outFile)
+
+    for ($attempt = 1; $attempt -le 4; $attempt++) {
+        try {
+            Invoke-WebRequest -Uri $uri -OutFile $outFile
+            return
+        } catch {
+            if ($attempt -eq 4) { throw }
+            Write-Warning "Download failed; retrying in 1 second ($attempt/3)."
+            Start-Sleep -Seconds 1
+        }
+    }
+}
+
 $arch = [System.Runtime.InteropServices.RuntimeInformation]::OSArchitecture.ToString()
 switch ($arch) {
     'X64' { $target = 'x86_64-pc-windows-msvc' }
@@ -30,7 +45,7 @@ New-Item -ItemType Directory -Path $tmpDir | Out-Null
 try {
     $zipPath = Join-Path $tmpDir $asset
     Write-Host "Downloading $asset ($version)..."
-    Invoke-WebRequest -Uri $url -OutFile $zipPath
+    Invoke-FatouDownload -Uri $url -OutFile $zipPath
 
     if ($verify -eq 'true') {
         # Fetch the published checksum sidecar. Older releases may not have one,
@@ -38,7 +53,7 @@ try {
         $shaPath = "$zipPath.sha256"
         $haveChecksum = $true
         try {
-            Invoke-WebRequest -Uri "$url.sha256" -OutFile $shaPath
+            Invoke-FatouDownload -Uri "$url.sha256" -OutFile $shaPath
         } catch {
             $haveChecksum = $false
             Write-Warning "No published checksum for $asset; skipping verification."
