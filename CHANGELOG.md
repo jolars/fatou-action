@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.1.1](https://github.com/jolars/fatou-action/compare/v1.1.0...v1.1.1) (2026-09-23)
+
+### Bug Fixes
+- retry failed release downloads ([`837e5f3`](https://github.com/jolars/fatou-action/commit/837e5f3da81dcb14d99d58572645bd66e7b855a2))
+
 ## [1.1.0](https://github.com/jolars/fatou-action/compare/v1.0.0...v1.1.0) (2026-08-06)
 
 ### Features
